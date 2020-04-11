@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/open-telemetry/opentelemetry-collector/component"
 	"github.com/open-telemetry/opentelemetry-collector/config/configmodels"
@@ -26,6 +27,8 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver/protocol"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/collector/cpu"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/signalfxreceiver"
 )
@@ -177,4 +180,54 @@ func (cr *CarbonDataReceiver) GenConfigYAMLStr() string {
 // ProtocolName returns protocol name as it is specified in Collector config.
 func (cr *CarbonDataReceiver) ProtocolName() string {
 	return "carbon"
+}
+
+// HostMetricsReceiver implements Host Metrics receiver.
+type HostMetricsReceiver struct {
+	testbed.DataReceiverBase
+	receiver *hostmetricsreceiver.Receiver
+}
+
+// Ensure HostMetricsReceiver implements DataReceiver.
+var _ testbed.DataReceiver = (*HostMetricsReceiver)(nil)
+
+// NewHostMetricsReceiver creates a new HostMetricsReceiver.
+func NewHostMetricsReceiver() *HostMetricsReceiver {
+	return &HostMetricsReceiver{DataReceiverBase: testbed.DataReceiverBase{Port: 0}}
+}
+
+func (hmr *HostMetricsReceiver) Start(tc *testbed.MockTraceConsumer, mc *testbed.MockMetricConsumer) error {
+	config := &hostmetricsreceiver.Config{
+		ScrapeInterval: 1 * time.Second,
+		CPUConfig: &cpu.Config{
+			ReportPerCPU:     true,
+			ReportPerProcess: true,
+		},
+	}
+
+	var err error
+	hmr.receiver, err = hostmetricsreceiver.NewHostMetricsReceiver(zap.NewNop(), config, mc, nil)
+	if err != nil {
+		return err
+	}
+
+	return hmr.receiver.Start(context.Background(), hmr)
+}
+
+func (hmr *HostMetricsReceiver) Stop() {
+	hmr.receiver.Shutdown(context.Background())
+}
+
+func (hmr *HostMetricsReceiver) GenConfigYAMLStr() string {
+	// Note that this generates an exporter config for agent.
+	return fmt.Sprintf(`
+  hostmetrics:
+    scrape_interval: 1s
+    cpu:
+	  reportPerCPU: true
+	  reportPerProcess: true`)
+}
+
+func (hmr *HostMetricsReceiver) ProtocolName() string {
+	return "hostmetrics"
 }

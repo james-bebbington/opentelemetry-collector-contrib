@@ -1,0 +1,19 @@
+receivers:
+  hostmetrics:
+  hostmetrics/customname:
+    scrape_interval: 10s
+    cpu:
+      reportPerCPU: true
+
+processors:
+  exampleprocessor:
+
+exporters:
+  exampleexporter:
+
+service:
+  pipelines:
+    traces:
+      receivers: [hostmetrics]
+      processors: [exampleprocessor]
+      exporters: [exampleexporter]

@@ -63,7 +63,6 @@ func TestMetric10kDPS(t *testing.T) {
 				t,
 				test.sender,
 				test.receiver,
-				testbed.LoadOptions{ItemsPerBatch: 100},
 				test.resourceSpec,
 			)
 		})
