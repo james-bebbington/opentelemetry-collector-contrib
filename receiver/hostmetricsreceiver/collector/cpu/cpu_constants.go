@@ -22,35 +22,35 @@ import (
 
 var MetricCPUSeconds = &metricspb.MetricDescriptor{
 	Name:        "host/cpu/time",
-	Description: "Total CPU seconds broken down by different states",
+	Description: "Total CPU ticks or jiffies broken down by different states",
 	Unit:        "s",
-	Type:        metricspb.MetricDescriptor_CUMULATIVE_DOUBLE,
+	Type:        metricspb.MetricDescriptor_CUMULATIVE_INT64,
 	LabelKeys: []*metricspb.LabelKey{
-		{Key: "state", Description: "State of CPU time, e.g user/system/idle"},
-		{Key: "cpu", Description: "CPU Logical Number, e.g. 0/1/2"},
+		{Key: "state", Description: "State of CPU time, e.g user, system, idle"},
+		{Key: "cpu", Description: "CPU Logical Number, e.g. 0, 1, 2"},
 	},
 }
 
 var MetricCPUUtilization = &metricspb.MetricDescriptor{
 	Name:        "host/cpu/utilization",
-	Description: "Total User/System CPU seconds divided by total available CPU seconds",
+	Description: "Percent of processor utilized",
 	Unit:        "1",
-	Type:        metricspb.MetricDescriptor_CUMULATIVE_INT64,
-	LabelKeys:   []*metricspb.LabelKey{{Key: "cpu", Description: "CPU Logical Number, e.g. 0/1/2"}},
+	Type:        metricspb.MetricDescriptor_GAUGE_DOUBLE,
+	LabelKeys:   []*metricspb.LabelKey{{Key: "cpu", Description: "CPU Logical Number, e.g. 0, 1, 2"}},
 }
 
-var MetricProcessCPUSeconds = &metricspb.MetricDescriptor{
-	Name:        "process/cpu/time",
-	Description: "CPU seconds for this process",
+var MetricProcessCPUUtilization = &metricspb.MetricDescriptor{
+	Name:        "process/cpu/utilization",
+	Description: "Percent of processor utilized per process",
 	Unit:        "s",
-	Type:        metricspb.MetricDescriptor_CUMULATIVE_DOUBLE,
+	Type:        metricspb.MetricDescriptor_GAUGE_DOUBLE,
 	LabelKeys:   []*metricspb.LabelKey{{Key: "processname", Description: "Name of the process"}},
 }
 
 var (
-	LabelValueCPUUser   = &metricspb.LabelValue{Value: "user", HasValue: true}
-	LabelValueCPUSystem = &metricspb.LabelValue{Value: "system", HasValue: true}
-	LabelValueCPUIdle   = &metricspb.LabelValue{Value: "idle", HasValue: true}
-	LabelValueCPUNice   = &metricspb.LabelValue{Value: "nice", HasValue: true}
-	LabelValueCPUIOWait = &metricspb.LabelValue{Value: "iowait", HasValue: true}
+	LabelValueCPUUser      = &metricspb.LabelValue{Value: "user", HasValue: true}
+	LabelValueCPUSystem    = &metricspb.LabelValue{Value: "system", HasValue: true}
+	LabelValueCPUIdle      = &metricspb.LabelValue{Value: "idle", HasValue: true}
+	LabelValueCPUInterrupt = &metricspb.LabelValue{Value: "interrupt", HasValue: true}
+	LabelValueCPUIOWait    = &metricspb.LabelValue{Value: "iowait", HasValue: true}
 )

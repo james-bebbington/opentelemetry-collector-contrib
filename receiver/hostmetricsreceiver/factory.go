@@ -16,6 +16,8 @@ package hostmetricsreceiver
 
 import (
 	"context"
+	"errors"
+	"runtime"
 	"time"
 
 	"github.com/open-telemetry/opentelemetry-collector/component"
@@ -74,6 +76,10 @@ func (f *Factory) CreateMetricsReceiver(
 	config configmodels.Receiver,
 	consumer consumer.MetricsConsumerOld,
 ) (component.MetricsReceiver, error) {
+
+	if runtime.GOOS != "windows" {
+		return nil, errors.New("hostmetrics receiver is currently only supported on windows")
+	}
 
 	cfg := config.(*Config)
 

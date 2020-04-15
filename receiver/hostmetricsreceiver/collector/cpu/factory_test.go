@@ -15,6 +15,7 @@
 package cpu
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,6 +28,12 @@ func TestCreateMetricsCollector(t *testing.T) {
 
 	collector, err := factory.CreateMetricsCollector(zap.NewNop(), cfg)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, collector)
+	switch os := runtime.GOOS; os {
+	case "windows":
+		assert.Nil(t, err)
+		assert.NotNil(t, collector)
+	default:
+		assert.NotNil(t, err)
+		assert.Nil(t, collector)
+	}
 }

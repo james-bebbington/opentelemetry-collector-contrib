@@ -15,6 +15,8 @@
 package component
 
 import (
+	"context"
+
 	metricspb "github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1"
 	"go.uber.org/zap"
 )
@@ -22,7 +24,14 @@ import (
 // Collector gathers metrics from the host machine and converts
 // these into internal metrics format.
 type Collector interface {
-	CollectMetrics() []*metricspb.Metric
+	// Initialize performs any timely initialization tasks such as
+	// setting up performance counters for initial collection.
+	Initialize() error
+	// Close cleans up any unmanaged resources such as performance
+	// counter handles.
+	Close() error
+	// CollectMetrics returns a list of collected metrics.
+	CollectMetrics(ctx context.Context) ([]*metricspb.Metric, error)
 }
 
 // CollectorFactory can create a Collector.

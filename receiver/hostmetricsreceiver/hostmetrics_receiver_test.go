@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	metricspb "github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1"
 	"github.com/open-telemetry/opentelemetry-collector/component/componenttest"
 	"github.com/open-telemetry/opentelemetry-collector/exporter/exportertest"
 	"github.com/stretchr/testify/assert"
@@ -28,8 +29,6 @@ import (
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/collector/cpu"
 )
-
-var logger = zap.NewNop()
 
 var getSingleTickFn = func() <-chan time.Time {
 	c := make(chan time.Time)
@@ -48,7 +47,7 @@ func TestGatherMetrics_EndToEnd(t *testing.T) {
 		},
 	}
 
-	receiver, err := NewHostMetricsReceiver(logger, config, sink, getSingleTickFn)
+	receiver, err := NewHostMetricsReceiver(zap.NewNop(), config, sink, getSingleTickFn)
 	require.NoError(t, err, "Failed to create metrics receiver: %v", err)
 
 	err = receiver.Start(context.Background(), componenttest.NewNopHost())
@@ -61,27 +60,39 @@ func TestGatherMetrics_EndToEnd(t *testing.T) {
 
 	got := sink.AllMetrics()
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS != "windows" {
 		assert.EqualValues(t, 1, len(got))
 		assert.EqualValues(t, 0, len(got[0].Metrics))
 		return
 	}
 
-	assert.EqualValues(t, 1, len(got))
+	// expect 1 MetricsData object
+	assert.Equal(t, 1, len(got))
+
 	gotMetrics := got[0].Metrics
-	assert.EqualValues(t, 3, len(gotMetrics))
-	assert.EqualValues(t, cpu.MetricCPUSeconds, gotMetrics[0].MetricDescriptor)
 
-	assert.EqualValues(t, 5, len(gotMetrics[0].Timeseries))
-	assert.EqualValues(t, cpu.LabelValueCPUUser, gotMetrics[0].Timeseries[0].LabelValues[0])
-	assert.EqualValues(t, cpu.LabelValueCPUSystem, gotMetrics[0].Timeseries[1].LabelValues[0])
-	assert.EqualValues(t, cpu.LabelValueCPUIdle, gotMetrics[0].Timeseries[2].LabelValues[0])
-	assert.EqualValues(t, cpu.LabelValueCPUNice, gotMetrics[0].Timeseries[3].LabelValues[0])
-	assert.EqualValues(t, cpu.LabelValueCPUIOWait, gotMetrics[0].Timeseries[4].LabelValues[0])
+	// expect 3 metrics
+	assert.Equal(t, 3, len(gotMetrics))
 
-	assert.EqualValues(t, cpu.MetricCPUUtilization, gotMetrics[1].MetricDescriptor)
-	assert.EqualValues(t, 1, len(gotMetrics[1].Timeseries))
+	// for cpu seconds metric, expect 5*#cores timeseries with appropriate labels
+	assert.Equal(t, cpu.MetricCPUSeconds, gotMetrics[0].MetricDescriptor)
+	assert.Equal(t, 5*int(runtime.NumCPU()), len(gotMetrics[0].Timeseries))
+	assert.Equal(t, cpu.LabelValueCPUUser, gotMetrics[0].Timeseries[0].LabelValues[0])
+	assert.Equal(t, cpu.LabelValueCPUSystem, gotMetrics[0].Timeseries[1].LabelValues[0])
+	assert.Equal(t, cpu.LabelValueCPUIdle, gotMetrics[0].Timeseries[2].LabelValues[0])
+	assert.Equal(t, cpu.LabelValueCPUInterrupt, gotMetrics[0].Timeseries[3].LabelValues[0])
+	assert.Equal(t, cpu.LabelValueCPUIOWait, gotMetrics[0].Timeseries[4].LabelValues[0])
 
-	assert.EqualValues(t, cpu.MetricProcessCPUSeconds, gotMetrics[2].MetricDescriptor)
-	assert.EqualValues(t, 1, len(gotMetrics[2].Timeseries))
+	// for cpu utilization metric, expect #cores timeseries each with a value < 110
+	// (values can go over 100% by a small margin)
+	assert.Equal(t, cpu.MetricCPUUtilization, gotMetrics[1].MetricDescriptor)
+	assert.Equal(t, int(runtime.NumCPU()), len(gotMetrics[1].Timeseries))
+	for _, ts := range gotMetrics[1].Timeseries {
+		assert.Equal(t, 1, len(ts.Points))
+		assert.LessOrEqual(t, ts.Points[0].Value.(*metricspb.Point_DoubleValue).DoubleValue, float64(110))
+	}
+
+	// for cpu utilization per process metric, expect >1 timeseries
+	assert.Equal(t, cpu.MetricProcessCPUUtilization, gotMetrics[2].MetricDescriptor)
+	assert.GreaterOrEqual(t, len(gotMetrics[2].Timeseries), 1)
 }

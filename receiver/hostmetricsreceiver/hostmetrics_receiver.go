@@ -37,14 +37,13 @@ import (
 type Receiver struct {
 	consumer consumer.MetricsConsumerOld
 
-	startTime time.Time
-	tickerFn  getTickerC
+	tickerFn getTickerC
 
 	config     *Config
 	collectors []hmcomponent.Collector
 
-	stopOnce  sync.Once
 	startOnce sync.Once
+	stopOnce  sync.Once
 
 	done chan struct{}
 }
@@ -85,7 +84,6 @@ func NewHostMetricsReceiver(
 
 	hmr := &Receiver{
 		consumer:   consumer,
-		startTime:  time.Now(),
 		tickerFn:   tickerFn,
 		config:     config,
 		collectors: collectors,
@@ -95,10 +93,14 @@ func NewHostMetricsReceiver(
 	return hmr, nil
 }
 
-// Start scrapes VM metrics based on the OS platform.
+// Start scrapes Host metrics based on the OS platform.
 func (hmr *Receiver) Start(ctx context.Context, host component.Host) error {
 	var err = componenterror.ErrAlreadyStarted
 	hmr.startOnce.Do(func() {
+		err = hmr.initializeCollectors()
+		if err != nil {
+			return
+		}
 
 		go func() {
 			tickerC := hmr.tickerFn()
@@ -118,30 +120,64 @@ func (hmr *Receiver) Start(ctx context.Context, host component.Host) error {
 	return err
 }
 
-// Shutdown stops and cancels the underlying VM metrics scrapers.
+// Shutdown stops and cancels the underlying Host metrics scrapers.
 func (hmr *Receiver) Shutdown(context.Context) error {
 	var err = componenterror.ErrAlreadyStopped
 	hmr.stopOnce.Do(func() {
-		close(hmr.done)
-		err = nil
+		defer close(hmr.done)
+		err = hmr.closeCollectors()
 	})
 	return err
 }
 
+func (hmr *Receiver) initializeCollectors() error {
+	for _, collector := range hmr.collectors {
+		err := collector.Initialize()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (hmr *Receiver) closeCollectors() error {
+	var errs []error
+
+	for _, collector := range hmr.collectors {
+		err := collector.Close()
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+	}
+
+	if len(errs) > 0 {
+		return componenterror.CombineErrors(errs)
+	}
+
+	return nil
+}
+
 func (hmr *Receiver) scrapeAndExport() {
-	ctx, span := trace.StartSpan(context.Background(), "HostMetricsReceiver.scrapeAndExport")
+	ctx, span := trace.StartSpan(context.Background(), "hostmetricsreceiver.scrapeAndExport")
 	defer span.End()
 
 	var errs []error
-	metrics := make([]*metricspb.Metric, 0)
+	var metrics []*metricspb.Metric
 
 	for _, collector := range hmr.collectors {
-		metrics = append(metrics, collector.CollectMetrics()...)
+		m, err := collector.CollectMetrics(ctx)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		metrics = append(metrics, m...)
 	}
 
 	if len(errs) > 0 {
 		span.SetStatus(trace.Status{Code: trace.StatusCodeDataLoss, Message: fmt.Sprintf("Error(s) when scraping host metrics: %v", componenterror.CombineErrors(errs))})
-		return
 	}
 
 	if len(metrics) > 0 {
