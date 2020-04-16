@@ -28,6 +28,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/collector/cpu"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 )
 
 var getSingleTickFn = func() <-chan time.Time {
@@ -41,13 +42,25 @@ func TestGatherMetrics_EndToEnd(t *testing.T) {
 
 	config := &Config{
 		ScrapeInterval: 0,
-		CPUConfig: &cpu.Config{
-			ReportPerCPU:     true,
-			ReportPerProcess: true,
+		Collectors: map[string]component.CollectorConfig{
+			cpu.TypeStr: &cpu.Config{
+				ReportPerCPU:     true,
+				ReportPerProcess: true,
+			},
 		},
 	}
 
-	receiver, err := NewHostMetricsReceiver(zap.NewNop(), config, sink, getSingleTickFn)
+	factories := map[string]component.CollectorFactory{
+		cpu.TypeStr: &cpu.Factory{},
+	}
+
+	receiver, err := NewHostMetricsReceiver(zap.NewNop(), config, factories, sink, getSingleTickFn)
+
+	if runtime.GOOS != "windows" {
+		require.Error(t, err, "Expected error when creating a metrics receiver with cpu collector on a non-windows environment")
+		return
+	}
+
 	require.NoError(t, err, "Failed to create metrics receiver: %v", err)
 
 	err = receiver.Start(context.Background(), componenttest.NewNopHost())

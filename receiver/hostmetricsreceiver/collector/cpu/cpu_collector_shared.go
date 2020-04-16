@@ -19,13 +19,9 @@ import (
 
 	metricspb "github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1"
 	"go.opencensus.io/trace"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 )
 
 type cpuCollector interface {
-	component.Collector
-
 	getPerCoreMetrics(ctx context.Context) ([]*metricspb.Metric, error)
 	getPerProcessMetrics(ctx context.Context) ([]*metricspb.Metric, error)
 }

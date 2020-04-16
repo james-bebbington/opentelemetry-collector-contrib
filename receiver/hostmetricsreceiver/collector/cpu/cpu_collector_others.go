@@ -12,20 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hostmetricsreceiver
+// +build !windows
+
+package cpu
 
 import (
-	"time"
-
-	"github.com/open-telemetry/opentelemetry-collector/config/configmodels"
+	"errors"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 )
 
-// Config defines configuration for HostMetrics receiver.
-type Config struct {
-	configmodels.ReceiverSettings `mapstructure:",squash"`
-
-	ScrapeInterval time.Duration                        `mapstructure:"scrape_interval"`
-	Collectors     map[string]component.CollectorConfig `mapstructure:"collectors"`
+// NewCPUCollector creates a set of CPU related metrics
+func NewCPUCollector(cfg *Config) (component.Collector, error) {
+	return nil, errors.New("hostmetrics receiver is currently only supported on windows")
 }

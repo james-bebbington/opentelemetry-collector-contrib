@@ -20,8 +20,8 @@ type Config struct {
 	// as_ for each individual CPU/core in the system and will be distinguished
 	// by the `cpu` dimension.  If `false`, stats will only be generated for
 	// the system as a whole that will not include a `cpu` dimension.
-	ReportPerCPU bool `mapstructure:"reportpercpu"`
+	ReportPerCPU bool `mapstructure:"report_per_cpu"`
 
 	// If `true`, additional stats will be generated for each running process.
-	ReportPerProcess bool `mapstructure:"reportperprocess"`
+	ReportPerProcess bool `mapstructure:"report_per_process"`
 }

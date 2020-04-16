@@ -34,6 +34,8 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/collector/cpu"
+	hmcomponent "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/jaegerlegacyreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/redisreceiver"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sapmreceiver"
@@ -49,6 +51,13 @@ func components() (config.Factories, error) {
 		return config.Factories{}, err
 	}
 
+	collectorFactories, err := hmcomponent.MakeCollectorFactoryMap(
+		&cpu.Factory{},
+	)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
 	receivers := []component.ReceiverFactoryBase{
 		&collectdreceiver.Factory{},
 		&sapmreceiver.Factory{},
@@ -58,7 +67,7 @@ func components() (config.Factories, error) {
 		&wavefrontreceiver.Factory{},
 		&jaegerlegacyreceiver.Factory{},
 		&redisreceiver.Factory{},
-		&hostmetricsreceiver.Factory{},
+		&hostmetricsreceiver.Factory{CollectorFactories: collectorFactories},
 	}
 	for _, rcv := range factories.Receivers {
 		receivers = append(receivers, rcv)

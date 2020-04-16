@@ -17,7 +17,6 @@ package hostmetricsreceiver
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"sync"
 	"time"
 
@@ -29,7 +28,6 @@ import (
 	"go.opencensus.io/trace"
 	"go.uber.org/zap"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/collector/cpu"
 	hmcomponent "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 )
 
@@ -54,24 +52,14 @@ type getTickerC func() <-chan time.Time
 func NewHostMetricsReceiver(
 	logger *zap.Logger,
 	config *Config,
+	factories map[string]hmcomponent.CollectorFactory,
 	consumer consumer.MetricsConsumerOld,
 	tickerFn getTickerC,
 ) (*Receiver, error) {
 
-	configs := []struct {
-		config  hmcomponent.CollectorConfig
-		factory hmcomponent.CollectorFactory
-	}{
-		{config: config.CPUConfig, factory: &cpu.Factory{}},
-	}
-
 	collectors := make([]hmcomponent.Collector, 0)
-	for _, cfg := range configs {
-		if reflect.ValueOf(cfg.config).IsNil() {
-			continue
-		}
-
-		collector, err := cfg.factory.CreateMetricsCollector(logger, cfg.config)
+	for key, cfg := range config.Collectors {
+		collector, err := factories[key].CreateMetricsCollector(logger, cfg)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create collector: %s", err.Error())
 		}

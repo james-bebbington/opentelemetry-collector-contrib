@@ -1,8 +1,9 @@
 receivers:
   hostmetrics:
     scrape_interval: 10s
-    cpu:
-      reportPerCPU: true
+    collectors:
+      cpu:
+        report_per_cpu: true
 
 zpages:
   port: 55679

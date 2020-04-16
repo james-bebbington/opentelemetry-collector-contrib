@@ -15,9 +15,6 @@
 package cpu
 
 import (
-	"fmt"
-	"runtime"
-
 	"go.uber.org/zap"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
@@ -25,8 +22,25 @@ import (
 
 // This file implements Factory for CPU collector.
 
+const (
+	// The value of "type" key in configuration.
+	TypeStr = "cpu"
+)
+
 // Factory is the Factory for collector.
 type Factory struct {
+}
+
+// Type gets the type of the collector config created by this Factory.
+func (f *Factory) Type() string {
+	return TypeStr
+}
+
+// CreateDefaultConfig creates the default configuration for the Collector.
+func (f *Factory) CreateDefaultConfig() component.CollectorConfig {
+	return &Config{
+		ReportPerCPU: true,
+	}
 }
 
 // CreateMetricsCollector creates a collector based on provided config.
@@ -34,13 +48,6 @@ func (f *Factory) CreateMetricsCollector(
 	logger *zap.Logger,
 	config component.CollectorConfig,
 ) (component.Collector, error) {
-
 	cfg := config.(*Config)
-
-	switch os := runtime.GOOS; os {
-	case "windows":
-		return NewWindowsCPUCollector(cfg), nil
-	default:
-		return nil, fmt.Errorf("cpu metrics collector is not currently supported on %s", os)
-	}
+	return NewCPUCollector(cfg)
 }

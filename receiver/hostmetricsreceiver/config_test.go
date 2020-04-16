@@ -25,13 +25,19 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/collector/cpu"
+	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 )
 
 func TestLoadConfig(t *testing.T) {
 	factories, err := config.ExampleComponents()
 	assert.Nil(t, err)
 
-	factory := &Factory{}
+	collectorFactories, err := component.MakeCollectorFactoryMap(
+		&cpu.Factory{},
+	)
+	require.NoError(t, err)
+
+	factory := &Factory{CollectorFactories: collectorFactories}
 	factories.Receivers[typeStr] = factory
 	cfg, err := config.LoadConfigFile(t, path.Join(".", "testdata", "config.yaml"), factories)
 
@@ -41,7 +47,11 @@ func TestLoadConfig(t *testing.T) {
 	assert.Equal(t, len(cfg.Receivers), 2)
 
 	r0 := cfg.Receivers["hostmetrics"]
-	assert.Equal(t, r0, factory.CreateDefaultConfig())
+	defaultConfigAllCollectors := factory.CreateDefaultConfig()
+	defaultConfigAllCollectors.(*Config).Collectors = map[string]component.CollectorConfig{
+		cpu.TypeStr: collectorFactories[cpu.TypeStr].CreateDefaultConfig(),
+	}
+	assert.Equal(t, r0, defaultConfigAllCollectors)
 
 	r1 := cfg.Receivers["hostmetrics/customname"].(*Config)
 	assert.Equal(t, r1,
@@ -51,8 +61,11 @@ func TestLoadConfig(t *testing.T) {
 				NameVal: "hostmetrics/customname",
 			},
 			ScrapeInterval: 10 * time.Second,
-			CPUConfig: &cpu.Config{
-				ReportPerCPU: true,
+			Collectors: map[string]component.CollectorConfig{
+				cpu.TypeStr: &cpu.Config{
+					ReportPerCPU:     true,
+					ReportPerProcess: true,
+				},
 			},
 		})
 }

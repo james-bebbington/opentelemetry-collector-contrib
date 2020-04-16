@@ -1,9 +1,13 @@
 receivers:
   hostmetrics:
+    collectors:
+      cpu:
   hostmetrics/customname:
     scrape_interval: 10s
-    cpu:
-      reportPerCPU: true
+    collectors:
+      cpu:
+        report_per_cpu: true
+        report_per_process: true
 
 processors:
   exampleprocessor:

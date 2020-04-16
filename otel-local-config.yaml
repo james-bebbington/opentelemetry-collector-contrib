@@ -9,9 +9,10 @@ receivers:
 
   hostmetrics:
     scrape_interval: 1s
-    cpu:
-      reportpercpu: true
-      reportperprocess: true
+    collectors:
+      cpu:
+        report_per_cpu: true
+        report_per_process: true
 
 exporters:
 

@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hostmetricsreceiver
+// +build !windows
 
-import (
-	"time"
-
-	"github.com/open-telemetry/opentelemetry-collector/config/configmodels"
-
-	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
-)
-
-// Config defines configuration for HostMetrics receiver.
-type Config struct {
-	configmodels.ReceiverSettings `mapstructure:",squash"`
-
-	ScrapeInterval time.Duration                        `mapstructure:"scrape_interval"`
-	Collectors     map[string]component.CollectorConfig `mapstructure:"collectors"`
-}
+package windows

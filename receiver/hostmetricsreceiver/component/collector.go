@@ -16,8 +16,10 @@ package component
 
 import (
 	"context"
+	"fmt"
 
 	metricspb "github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1"
+	"github.com/open-telemetry/opentelemetry-collector/component"
 	"go.uber.org/zap"
 )
 
@@ -36,6 +38,11 @@ type Collector interface {
 
 // CollectorFactory can create a Collector.
 type CollectorFactory interface {
+	component.Factory
+
+	// CreateDefaultConfig creates the default configuration for the Collector.
+	CreateDefaultConfig() CollectorConfig
+
 	// CreateMetricsCollector creates a collector based on this config.
 	// If the config is not valid, error will be returned instead.
 	CreateMetricsCollector(logger *zap.Logger,
@@ -44,4 +51,18 @@ type CollectorFactory interface {
 
 // CollectorConfig is the configuration of a collector.
 type CollectorConfig interface {
+}
+
+// MakeCollectorFactoryMap takes a list of collector factories and returns a map
+// with factory type as keys. It returns a non-nil error when more than one factories
+// have the same type.
+func MakeCollectorFactoryMap(factories ...CollectorFactory) (map[string]CollectorFactory, error) {
+	fMap := map[string]CollectorFactory{}
+	for _, f := range factories {
+		if _, ok := fMap[f.Type()]; ok {
+			return fMap, fmt.Errorf("duplicate collector factory %q", f.Type())
+		}
+		fMap[f.Type()] = f
+	}
+	return fMap, nil
 }

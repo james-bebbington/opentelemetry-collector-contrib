@@ -17,6 +17,7 @@ package hostmetricsreceiver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
 	"time"
 
@@ -24,7 +25,10 @@ import (
 	"github.com/open-telemetry/opentelemetry-collector/config/configerror"
 	"github.com/open-telemetry/opentelemetry-collector/config/configmodels"
 	"github.com/open-telemetry/opentelemetry-collector/consumer"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
+
+	hmcomponent "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/component"
 )
 
 // This file implements Factory for HostMetrics receiver.
@@ -36,6 +40,7 @@ const (
 
 // Factory is the Factory for receiver.
 type Factory struct {
+	CollectorFactories map[string]hmcomponent.CollectorFactory
 }
 
 // Type gets the type of the Receiver config created by this Factory.
@@ -45,7 +50,47 @@ func (f *Factory) Type() string {
 
 // CustomUnmarshaler returns nil because we don't need custom unmarshaling for this factory.
 func (f *Factory) CustomUnmarshaler() component.CustomUnmarshaler {
-	return nil
+	return func(componentViperSection *viper.Viper, intoCfg interface{}) error {
+		// load the non-dynamic config normally
+		err := componentViperSection.UnmarshalExact(intoCfg)
+		if err != nil {
+			return err
+		}
+
+		config, ok := intoCfg.(*Config)
+		if !ok {
+			return fmt.Errorf("config type not hostmetrics.Config")
+		}
+
+		// dynamically load the individual collector configs based on the key name
+
+		config.Collectors = map[string]hmcomponent.CollectorConfig{}
+
+		collectorsViperSection := componentViperSection.Sub("collectors")
+		if len(collectorsViperSection.AllKeys()) == 0 {
+			return fmt.Errorf("must specify at least one collector when using hostmetrics receiver")
+		}
+
+		for key := range componentViperSection.GetStringMap("collectors") {
+			factory, ok := f.CollectorFactories[key]
+			if !ok {
+				return fmt.Errorf("invalid hostmetrics collector key: %s", key)
+			}
+
+			collectorCfg := factory.CreateDefaultConfig()
+			collectorViperSection := collectorsViperSection.Sub(key)
+			if collectorViperSection != nil {
+				err := collectorViperSection.UnmarshalExact(collectorCfg)
+				if err != nil {
+					return fmt.Errorf("error reading settings for hostmetric collector type %q: %v", key, err)
+				}
+			}
+
+			config.Collectors[key] = collectorCfg
+		}
+
+		return nil
+	}
 }
 
 // CreateDefaultConfig creates the default configuration for receiver.
@@ -73,17 +118,17 @@ func (f *Factory) CreateTraceReceiver(
 // CreateMetricsReceiver creates a metrics receiver based on provided config.
 func (f *Factory) CreateMetricsReceiver(
 	logger *zap.Logger,
-	config configmodels.Receiver,
+	cfg configmodels.Receiver,
 	consumer consumer.MetricsConsumerOld,
 ) (component.MetricsReceiver, error) {
 
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS == "windows" {
 		return nil, errors.New("hostmetrics receiver is currently only supported on windows")
 	}
 
-	cfg := config.(*Config)
+	config := cfg.(*Config)
 
-	hmr, err := NewHostMetricsReceiver(logger, cfg, consumer, nil)
+	hmr, err := NewHostMetricsReceiver(logger, config, f.CollectorFactories, consumer, nil)
 	if err != nil {
 		return nil, err
 	}

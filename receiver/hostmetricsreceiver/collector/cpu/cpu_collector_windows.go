@@ -24,13 +24,13 @@ import (
 	"time"
 
 	metricspb "github.com/census-instrumentation/opencensus-proto/gen-go/metrics/v1"
+	"github.com/open-telemetry/opentelemetry-collector/component/componenterror"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/process"
 	"go.opencensus.io/trace"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver/internal/windows"
-	"github.com/open-telemetry/opentelemetry-collector/component/componenterror"
 )
 
 var cpus = float64(runtime.NumCPU())
@@ -70,10 +70,8 @@ type Collector struct {
 }
 
 // NewCPUCollector creates a set of CPU related metrics
-func NewWindowsCPUCollector(cfg *Config) *Collector {
-	return &Collector{
-		config: cfg,
-	}
+func NewCPUCollector(cfg *Config) (*Collector, error) {
+	return &Collector{config: cfg}, nil
 }
 
 // Initialize
