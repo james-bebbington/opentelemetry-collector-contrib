@@ -1,10 +1,10 @@
-// Copyright 2019 OpenTelemetry Authors
+// Copyright The OpenTelemetry Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Program otelcontribcol is the Omnition Telemetry Service built on top of
-// OpenTelemetry Service.
+// Program otelcontribcol extends the OpenTelemetry Collector with
+// additional components.
 package main
 
 import (
@@ -22,17 +22,14 @@ import (
 	"go.opentelemetry.io/collector/service"
 
 	"github.com/open-telemetry/opentelemetry-collector-contrib/internal/version"
+	"github.com/pkg/errors"
 )
 
 func main() {
-	handleErr := func(message string, err error) {
-		if err != nil {
-			log.Fatalf("%s: %v", message, err)
-		}
-	}
-
 	factories, err := components()
-	handleErr("Failed to build components", err)
+	if err != nil {
+		log.Fatalf("failed to build components: %v", err)
+	}
 
 	info := service.ApplicationStartInfo{
 		ExeName:  "otelcontribcol",
@@ -41,9 +38,22 @@ func main() {
 		GitHash:  version.GitHash,
 	}
 
-	svc, err := service.New(service.Parameters{Factories: factories, ApplicationStartInfo: info})
-	handleErr("Failed to construct the application", err)
+	params := service.Parameters{Factories: factories, ApplicationStartInfo: info}
+	if err := run(params); err != nil {
+		log.Fatal(err)
+	}
+}
 
-	err = svc.Start()
-	handleErr("Application run finished with error", err)
+func runInteractive(params service.Parameters) error {
+	app, err := service.New(params)
+	if err != nil {
+		return errors.Wrap(err, "failed to construct the application")
+	}
+
+	err = app.Start()
+	if err != nil {
+		return errors.Wrap(err, "application run finished with error: %v")
+	}
+
+	return nil
 }

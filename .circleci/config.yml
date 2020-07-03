@@ -156,6 +156,12 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - windows-msi:
+        requires:
+          - cross-compile
+        filters:
+          tags:
+            only: /^v([0-9])+.([0-9])+.([0-9])+.*/
       - publish-stable:
           requires:
             - lint
@@ -163,6 +169,7 @@ workflows:
             - integration-tests
             - build
             - cross-compile
+            - windows-msi
           filters:
             branches:
               ignore: /.*/
@@ -366,3 +373,24 @@ jobs:
           path: test-results/junit
       - store_artifacts:
           path: test-results
+
+  windows-msi:
+    executor:
+      name: win/default
+      shell: powershell.exe
+    steps:
+      - attach_to_workspace
+      - run:
+          name: Install Wix Toolset
+          command: .\packaging\msi\make.ps1 Install-Tools
+      - run:
+          name: Build MSI
+          command: |
+            $Version = if ($env:CIRCLE_TAG -match '^v(\d+\.\d+\.\d+)') { $Matches[1] } else { "0.0.1" }
+            .\packaging\msi\make.ps1 New-MSI -Version $Version
+      - run:
+          name: Validate MSI
+          command: .\packaging\msi\make.ps1 Confirm-MSI
+      - persist_to_workspace:
+          root: ~/
+          paths: project/bin
