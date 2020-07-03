@@ -22,7 +22,9 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/splunkhecexporter v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/exporter/stackdriverexporter v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/extension/observer/k8sobserver v0.0.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/hostmetricsstackdriverprocessor v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sprocessor v0.0.0
+	github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/carbonreceiver v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/collectdreceiver v0.0.0
@@ -37,9 +39,11 @@ require (
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/wavefrontreceiver v0.0.0
 	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinscribereceiver v0.0.0
 	github.com/pavius/impi v0.0.0-20180302134524-c1cbdcb8df2b
+	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.5.1
 	github.com/tcnksm/ghr v0.13.0
 	go.opentelemetry.io/collector v0.5.0
+	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4
 	honnef.co/go/tools v0.0.1-2020.1.3
 )
 
@@ -108,7 +112,11 @@ replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/wavef
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/receiver/zipkinscribereceiver => ./receiver/zipkinscribereceiver
 
+replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/hostmetricsstackdriverprocessor => ./processor/hostmetricsstackdriverprocessor/
+
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/k8sprocessor => ./processor/k8sprocessor/
+
+replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/metricstransformprocessor => ./processor/metricstransformprocessor/
 
 replace github.com/open-telemetry/opentelemetry-collector-contrib/processor/resourcedetectionprocessor => ./processor/resourcedetectionprocessor/
 

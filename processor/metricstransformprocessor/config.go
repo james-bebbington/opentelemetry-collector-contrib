@@ -112,6 +112,9 @@ const (
 	// Update updates an existing metric.
 	Update ConfigAction = "update"
 
+	// ChangeDataType changes the data type from int64 to double, or vice-versa
+	ChangeDataType OperationAction = "change_data_type"
+
 	// UpdateLabel applies name changes to label and/or label values.
 	UpdateLabel OperationAction = "update_label"
 
