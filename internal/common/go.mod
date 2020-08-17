@@ -21,7 +21,7 @@ require (
 	go.opentelemetry.io/collector v0.8.1-0.20200815205113-8e5c6065eb0e
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	gotest.tools v1.4.0 // indirect
-	k8s.io/client-go v0.18.6
+	k8s.io/client-go v0.18.8
 	k8s.io/utils v0.0.0-20200724153422-f32512634ab7 // indirect
 )
 
