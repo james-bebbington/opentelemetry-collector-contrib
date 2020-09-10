@@ -26,6 +26,7 @@ import (
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer/consumerdata"
+	"go.opentelemetry.io/collector/consumer/consumererror"
 	"go.opentelemetry.io/collector/consumer/pdata"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/translator/internaldata"
@@ -172,8 +173,9 @@ func newStackdriverMetricsExporter(cfg *Config, version string) (component.Metri
 
 // pushMetrics calls StackdriverExporter.PushMetricsProto on each element of the given metrics
 func (me *metricsExporter) pushMetrics(ctx context.Context, m pdata.Metrics) (int, error) {
-	var errors []error
 	var totalDropped int
+	var errors []error
+	var droppedMetrics []consumerdata.MetricsData
 
 	mds := internaldata.MetricsToOC(m)
 	for _, md := range mds {
@@ -183,11 +185,16 @@ func (me *metricsExporter) pushMetrics(ctx context.Context, m pdata.Metrics) (in
 		totalDropped += dropped
 		if err != nil {
 			errors = append(errors, err)
+			droppedMetrics = append(droppedMetrics, md)
 		}
 	}
 
 	if len(errors) > 0 {
-		return totalDropped, componenterror.CombineErrors(errors)
+		err := componenterror.CombineErrors(errors)
+		if len(errors) < len(mds) {
+			return totalDropped, consumererror.PartialMetricsError(err, internaldata.OCSliceToMetrics(droppedMetrics))
+		}
+		return totalDropped, err
 	}
 
 	return totalDropped, nil
