@@ -19,10 +19,15 @@ package stackdriverexporter
 import (
 	"context"
 	"fmt"
+	"math"
+	"runtime"
 	"strings"
 
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	cloudtrace "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/host"
+	"github.com/shirou/gopsutil/mem"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/component/componenterror"
 	"go.opentelemetry.io/collector/consumer/consumerdata"
@@ -67,6 +72,16 @@ func (me *metricsExporter) Shutdown(context.Context) error {
 
 func generateClientOptions(cfg *Config, version string) ([]option.ClientOption, error) {
 	userAgent := strings.ReplaceAll(cfg.UserAgent, "{{version}}", version)
+
+	if cfg.IncludeOSInfoInUserAgent {
+		osInfo, err := getOperatingSystemInfo()
+		if err != nil {
+			return nil, err
+		}
+
+		userAgent += osInfo
+	}
+
 	var copts []option.ClientOption
 	if userAgent != "" {
 		copts = append(copts, option.WithUserAgent(userAgent))
@@ -91,6 +106,38 @@ func generateClientOptions(cfg *Config, version string) ([]option.ClientOption, 
 		copts = append(copts, cfg.GetClientOptions()...)
 	}
 	return copts, nil
+}
+
+func getOperatingSystemInfo() (string, error) {
+	str := ""
+
+	hostInfo, err := host.Info()
+	if err != nil {
+		return str, err
+	}
+
+	cores := runtime.NumCPU()
+
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		return str, err
+	}
+
+	disk, err := disk.Usage("/")
+	if err != nil {
+		return str, err
+	}
+
+	str = fmt.Sprintf(
+		" %s v%s (Cores=%v; Memory=%0.2fGB; Disk=%0.2fGB)",
+		hostInfo.Platform,
+		hostInfo.PlatformVersion,
+		cores,
+		float64(memory.Total)/math.Pow(1024, 3),
+		float64(disk.Total)/math.Pow(1024, 3),
+	)
+
+	return str, nil
 }
 
 func newStackdriverTraceExporter(cfg *Config, version string) (component.TraceExporter, error) {
