@@ -61,7 +61,7 @@ require (
 	github.com/tcnksm/ghr v0.13.0
 	go.opentelemetry.io/collector v0.14.1-0.20201117192738-131ff3e248b6
 	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1
-	honnef.co/go/tools v0.0.1-2020.1.6
+	honnef.co/go/tools v0.2.0-0.dev
 )
 
 // Replace references to modules that are in this repository with their relateive paths
