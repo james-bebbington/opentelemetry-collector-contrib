@@ -12,6 +12,6 @@ require (
 	go.opencensus.io v0.22.5
 	go.opentelemetry.io/collector v0.14.1-0.20201117192738-131ff3e248b6
 	go.uber.org/zap v1.16.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.27.1
+	gopkg.in/DataDog/dd-trace-go.v1 v1.29.0
 	gopkg.in/zorkian/go-datadog-api.v2 v2.30.0
 )
