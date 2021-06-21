@@ -3,9 +3,9 @@ module github.com/open-telemetry/opentelemetry-collector-contrib/receiver/window
 go 1.14
 
 require (
-	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.6.1
+	github.com/spf13/viper v1.8.0
+	github.com/stretchr/testify v1.7.0
 	go.opentelemetry.io/collector v0.14.1-0.20201117192738-131ff3e248b6
-	go.uber.org/zap v1.16.0
-	golang.org/x/sys v0.0.0-20201015000850-e3ed0017c211
+	go.uber.org/zap v1.17.0
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
 )
